@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { User, Bell, LogOut, Settings, ChevronDown, Mail, Shield } from 'lucide-react';
+import { User, Bell, LogOut, Settings, ChevronDown, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
@@ -27,8 +27,7 @@ const Navbar = () => {
 
     const handleProfile = () => {
         setIsDropdownOpen(false);
-        // You can navigate to profile page or show modal
-        alert('Profile information:\n' +
+        alert('Profile Information:\n' +
               `Username: ${user?.username}\n` +
               `Role: ${user?.role}\n` +
               `Email: ${user?.email || 'Not set'}`);
@@ -44,58 +43,49 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="bg-white shadow-md border-b border-gray-200 fixed top-0 right-0 left-64 z-10">
-            <div className="px-6 py-4 flex justify-between items-center">
-                {/* Page Title */}
+        <nav className="bg-white shadow-md border-b border-gray-200 fixed top-0 right-0 left-64 z-10 h-14">
+            <div className="px-4 py-2 flex justify-between items-center h-full">
+                {/* Page Title - Simplified */}
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-800">
-                        Welcome back, {user?.username || 'Guest'}!
+                    <h2 className="text-base font-semibold text-gray-800">
+                        Welcome, {user?.username || 'Guest'}!
                     </h2>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                        {new Date().toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                        })}
-                    </p>
                 </div>
 
                 {/* Right Side - Notifications & Profile */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     {/* Notifications Button */}
-                    <button className="relative text-gray-500 hover:text-gray-700 transition p-2 rounded-full hover:bg-gray-100">
-                        <Bell className="w-5 h-5" />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    <button className="relative text-gray-500 hover:text-gray-700 transition p-1.5 rounded-full hover:bg-gray-100">
+                        <Bell className="w-4 h-4" />
+                        <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
                     </button>
 
                     {/* Profile Dropdown */}
                     <div className="relative" ref={dropdownRef}>
                         <button
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className="flex items-center gap-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition"
+                            className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition"
                         >
                             <div className="relative">
-                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${getRoleColor(user?.role)}`}>
-                                    <User className="w-5 h-5 text-white" />
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${getRoleColor(user?.role)}`}>
+                                    <User className="w-3.5 h-3.5 text-white" />
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
                             </div>
                             <div className="text-left hidden md:block">
-                                <p className="text-sm font-medium text-gray-700">{user?.username}</p>
+                                <p className="text-xs font-medium text-gray-700">{user?.username}</p>
                                 <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
                             </div>
-                            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 
                         {/* Dropdown Menu */}
                         {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-                                {/* User Info Header */}
-                                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getRoleColor(user?.role)}`}>
-                                            <User className="w-5 h-5 text-white" />
+                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
+                                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getRoleColor(user?.role)}`}>
+                                            <User className="w-4 h-4 text-white" />
                                         </div>
                                         <div>
                                             <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
@@ -103,25 +93,13 @@ const Navbar = () => {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Menu Items */}
-                                <div className="py-2">
+                                <div className="py-1">
                                     <button
                                         onClick={handleProfile}
                                         className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                                     >
                                         <User className="w-4 h-4" />
                                         <span>My Profile</span>
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setIsDropdownOpen(false);
-                                            navigate('/settings');
-                                        }}
-                                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                                    >
-                                        <Settings className="w-4 h-4" />
-                                        <span>Settings</span>
                                     </button>
                                     <hr className="my-1 border-gray-200" />
                                     <button

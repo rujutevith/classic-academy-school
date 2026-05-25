@@ -8,8 +8,8 @@ import Employees from './pages/Employees';
 import Departments from './pages/Departments';
 import Attendance from './pages/Attendance';
 import Salaries from './pages/Salaries';
-import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import Settings from './pages/Settings';
 import Sidebar from './components/Layout/Sidebar';
 import Navbar from './components/Layout/Navbar';
 
@@ -34,8 +34,11 @@ const AppLayout = ({ children }) => {
         <div className="min-h-screen bg-gray-50">
             <Sidebar />
             <Navbar />
-            <main className="ml-64 pt-16 p-6">
-                {children}
+            {/* Main content - pt-14 matches navbar height (56px = h-14) */}
+            <main className="ml-64 pt-14 p-4 min-h-screen">
+                <div className="max-w-7xl mx-auto">
+                    {children}
+                </div>
             </main>
         </div>
     );
@@ -50,7 +53,6 @@ function AppContent() {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             
-            {/* Dashboard Route */}
             <Route
                 path="/dashboard"
                 element={
@@ -62,7 +64,6 @@ function AppContent() {
                 }
             />
             
-            {/* Employees Route */}
             <Route
                 path="/employees"
                 element={
@@ -74,7 +75,6 @@ function AppContent() {
                 }
             />
             
-            {/* Departments Route */}
             <Route
                 path="/departments"
                 element={
@@ -86,7 +86,6 @@ function AppContent() {
                 }
             />
             
-            {/* Attendance Route */}
             <Route
                 path="/attendance"
                 element={
@@ -98,7 +97,6 @@ function AppContent() {
                 }
             />
             
-            {/* Salaries Route */}
             <Route
                 path="/salaries"
                 element={
@@ -110,7 +108,6 @@ function AppContent() {
                 }
             />
             
-            {/* Reports Route - NEW */}
             <Route
                 path="/reports"
                 element={
@@ -122,7 +119,17 @@ function AppContent() {
                 }
             />
             
-            {/* Catch all - redirect to dashboard */}
+            <Route
+                path="/settings"
+                element={
+                    <PrivateRoute>
+                        <AppLayout>
+                            <Settings />
+                        </AppLayout>
+                    </PrivateRoute>
+                }
+            />
+            
             <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
     );
@@ -137,24 +144,10 @@ function App() {
                 <Toaster 
                     position="top-right"
                     toastOptions={{
-                        duration: 4000,
+                        duration: 3000,
                         style: {
                             background: '#363636',
                             color: '#fff',
-                        },
-                        success: {
-                            duration: 3000,
-                            iconTheme: {
-                                primary: '#10B981',
-                                secondary: '#fff',
-                            },
-                        },
-                        error: {
-                            duration: 4000,
-                            iconTheme: {
-                                primary: '#EF4444',
-                                secondary: '#fff',
-                            },
                         },
                     }}
                 />

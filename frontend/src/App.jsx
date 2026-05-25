@@ -8,6 +8,7 @@ import Employees from './pages/Employees';
 import Departments from './pages/Departments';
 import Attendance from './pages/Attendance';
 import Salaries from './pages/Salaries';
+import Settings from './pages/Settings';
 import Reports from './pages/Reports';
 import Sidebar from './components/Layout/Sidebar';
 import Navbar from './components/Layout/Navbar';

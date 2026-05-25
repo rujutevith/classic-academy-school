@@ -15,13 +15,47 @@ const Reports = () => {
     const [departments, setDepartments] = useState([]);
 
     useEffect(() => {
-        fetchAllReports();
-        fetchEmployeesAndDepartments();
+        fetchAllData();
     }, []);
 
-    const fetchAllReports = async () => {
+    const fetchAllData = async () => {
         setLoading(true);
         try {
+            // Fetch employees and departments first
+            const [empRes, deptRes] = await Promise.all([
+                api.get('/employees'),
+                api.get('/departments')
+            ]);
+            
+            setEmployees(empRes.data);
+            setDepartments(deptRes.data);
+            
+            // Create department report
+            const deptReportData = {
+                title: 'Department Report',
+                generated_date: new Date().toISOString(),
+                total_departments: deptRes.data.length,
+                total_employees: empRes.data.length,
+                departments: deptRes.data.map(dept => {
+                    const deptEmployees = empRes.data.filter(e => e.department_id === dept.id);
+                    const totalSalary = deptEmployees.reduce((sum, e) => sum + (e.salary || 0), 0);
+                    const avgSalary = deptEmployees.length > 0 ? totalSalary / deptEmployees.length : 0;
+                    
+                    return {
+                        id: dept.id,
+                        name: dept.name,
+                        description: dept.description || 'No description',
+                        employee_count: deptEmployees.length,
+                        employees: deptEmployees,
+                        total_salary: totalSalary,
+                        average_salary: avgSalary,
+                        active_employees: deptEmployees.filter(e => e.status === 'active').length
+                    };
+                })
+            };
+            setDepartmentReport(deptReportData);
+            
+            // Fetch other reports
             const [dashboardRes, employeeRes, salaryRes, attendanceRes] = await Promise.all([
                 api.get('/reports/dashboard'),
                 api.get('/reports/employees'),
@@ -33,46 +67,12 @@ const Reports = () => {
             setEmployeeReport(employeeRes.data);
             setSalaryReport(salaryRes.data);
             setAttendanceReport(attendanceRes.data);
+            
         } catch (error) {
-            console.error('Error fetching reports:', error);
+            console.error('Error fetching data:', error);
             toast.error('Failed to load reports');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const fetchEmployeesAndDepartments = async () => {
-        try {
-            const [empRes, deptRes] = await Promise.all([
-                api.get('/employees'),
-                api.get('/departments')
-            ]);
-            setEmployees(empRes.data);
-            setDepartments(deptRes.data);
-            
-            // Create department report
-            const deptReport = {
-                title: 'Department Report',
-                generated_date: new Date().toISOString(),
-                total_departments: deptRes.data.length,
-                departments: deptRes.data.map(dept => ({
-                    id: dept.id,
-                    name: dept.name,
-                    description: dept.description,
-                    employee_count: empRes.data.filter(e => e.department_id === dept.id).length,
-                    employees: empRes.data.filter(e => e.department_id === dept.id),
-                    total_salary: empRes.data
-                        .filter(e => e.department_id === dept.id)
-                        .reduce((sum, e) => sum + (e.salary || 0), 0),
-                    average_salary: empRes.data.filter(e => e.department_id === dept.id).length > 0 
-                        ? empRes.data.filter(e => e.department_id === dept.id).reduce((sum, e) => sum + (e.salary || 0), 0) / 
-                          empRes.data.filter(e => e.department_id === dept.id).length 
-                        : 0
-                }))
-            };
-            setDepartmentReport(deptReport);
-        } catch (error) {
-            console.error('Error fetching data:', error);
         }
     };
 
@@ -155,6 +155,7 @@ const Reports = () => {
                                 : 'text-gray-500 hover:text-gray-700'
                         }`}
                     >
+                        <FileText className="w-4 h-4 inline mr-2" />
                         Dashboard
                     </button>
                     <button
@@ -165,6 +166,7 @@ const Reports = () => {
                                 : 'text-gray-500 hover:text-gray-700'
                         }`}
                     >
+                        <Users className="w-4 h-4 inline mr-2" />
                         Employees
                     </button>
                     <button
@@ -175,6 +177,7 @@ const Reports = () => {
                                 : 'text-gray-500 hover:text-gray-700'
                         }`}
                     >
+                        <Building2 className="w-4 h-4 inline mr-2" />
                         Departments
                     </button>
                     <button
@@ -185,6 +188,7 @@ const Reports = () => {
                                 : 'text-gray-500 hover:text-gray-700'
                         }`}
                     >
+                        <DollarSign className="w-4 h-4 inline mr-2" />
                         Salaries
                     </button>
                     <button
@@ -195,6 +199,7 @@ const Reports = () => {
                                 : 'text-gray-500 hover:text-gray-700'
                         }`}
                     >
+                        <Calendar className="w-4 h-4 inline mr-2" />
                         Attendance
                     </button>
                 </nav>
@@ -208,7 +213,7 @@ const Reports = () => {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-gray-500 text-sm">Total Employees</p>
-                                    <p className="text-2xl font-bold">{dashboardData.data?.summary?.totalEmployees || 0}</p>
+                                    <p className="text-2xl font-bold">{dashboardData.data?.summary?.totalEmployees || employees.length}</p>
                                 </div>
                                 <div className="p-3 bg-blue-100 rounded-full">
                                     <Users className="w-6 h-6 text-blue-600" />
@@ -219,7 +224,7 @@ const Reports = () => {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-gray-500 text-sm">Total Departments</p>
-                                    <p className="text-2xl font-bold">{dashboardData.data?.summary?.totalDepartments || 0}</p>
+                                    <p className="text-2xl font-bold">{dashboardData.data?.summary?.totalDepartments || departments.length}</p>
                                 </div>
                                 <div className="p-3 bg-green-100 rounded-full">
                                     <Building2 className="w-6 h-6 text-green-600" />
@@ -250,6 +255,31 @@ const Reports = () => {
                         </div>
                     </div>
 
+                    {/* Department Distribution Chart */}
+                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 className="text-lg font-semibold mb-4">Department Distribution</h3>
+                        <div className="space-y-3">
+                            {departments.map((dept) => {
+                                const empCount = employees.filter(e => e.department_id === dept.id).length;
+                                const percentage = employees.length > 0 ? (empCount / employees.length) * 100 : 0;
+                                return (
+                                    <div key={dept.id} className="flex items-center justify-between">
+                                        <span className="text-gray-700 w-32">{dept.name}</span>
+                                        <div className="flex-1 mx-4">
+                                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-blue-600 rounded-full"
+                                                    style={{ width: `${percentage}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                        <span className="text-gray-600 w-24 text-right">{empCount} employees</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                     {/* Recent Employees */}
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                         <div className="p-4 border-b border-gray-200 bg-gray-50">
@@ -267,12 +297,12 @@ const Reports = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {dashboardData.data?.recentEmployees?.map((emp) => (
+                                    {employees.slice(0, 5).map((emp) => (
                                         <tr key={emp.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 text-sm">{emp.employee_code}</td>
                                             <td className="px-4 py-3 text-sm">{emp.first_name} {emp.last_name}</td>
                                             <td className="px-4 py-3 text-sm">{emp.position}</td>
-                                            <td className="px-4 py-3 text-sm">{emp.department_name}</td>
+                                            <td className="px-4 py-3 text-sm">{departments.find(d => d.id === emp.department_id)?.name || '-'}</td>
                                             <td className="px-4 py-3 text-sm">{emp.salary?.toLocaleString()} RWF</td>
                                         </tr>
                                     ))}
@@ -283,98 +313,11 @@ const Reports = () => {
                 </div>
             )}
 
-            {/* Employee Report - Detailed */}
-            {activeReport === 'employees' && employeeReport && (
-                <div className="space-y-6">
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                            <div className="flex items-center gap-3">
-                                <Users className="w-8 h-8 text-blue-600" />
-                                <div>
-                                    <p className="text-gray-500 text-sm">Total Employees</p>
-                                    <p className="text-2xl font-bold">{employeeReport.report?.total_employees || 0}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                            <div className="flex items-center gap-3">
-                                <UserCheck className="w-8 h-8 text-green-600" />
-                                <div>
-                                    <p className="text-gray-500 text-sm">Active Employees</p>
-                                    <p className="text-2xl font-bold">
-                                        {employeeReport.report?.employees?.filter(e => e.status === 'active').length || 0}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                            <div className="flex items-center gap-3">
-                                <DollarSign className="w-8 h-8 text-purple-600" />
-                                <div>
-                                    <p className="text-gray-500 text-sm">Total Monthly Salary</p>
-                                    <p className="text-2xl font-bold">
-                                        {employeeReport.report?.employees?.reduce((sum, e) => sum + (e.salary || 0), 0).toLocaleString()} RWF
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Employees Table */}
-                    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                        <div className="p-4 border-b border-gray-200 bg-gray-50">
-                            <h3 className="text-lg font-semibold">Employee Directory</h3>
-                            <p className="text-sm text-gray-500">Generated: {new Date(employeeReport.report?.generated_date).toLocaleString()}</p>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Full Name</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hire Date</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Salary</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                    {employeeReport.report?.employees?.map((emp) => (
-                                        <tr key={emp.id} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm font-mono">{emp.employee_code}</td>
-                                            <td className="px-4 py-3 text-sm font-medium">{emp.first_name} {emp.last_name}</td>
-                                            <td className="px-4 py-3 text-sm">{emp.position}</td>
-                                            <td className="px-4 py-3 text-sm">{emp.department_name}</td>
-                                            <td className="px-4 py-3 text-sm">{emp.email}</td>
-                                            <td className="px-4 py-3 text-sm">{emp.phone || '-'}</td>
-                                            <td className="px-4 py-3 text-sm">{emp.hire_date}</td>
-                                            <td className="px-4 py-3 text-sm font-semibold">{emp.salary?.toLocaleString()} RWF</td>
-                                            <td className="px-4 py-3">
-                                                <span className={`px-2 py-1 text-xs rounded-full ${
-                                                    emp.status === 'active' ? 'bg-green-100 text-green-800' : 
-                                                    emp.status === 'inactive' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                                                }`}>
-                                                    {emp.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Department Report - Detailed */}
+            {/* DEPARTMENT REPORT - FULL DETAILS */}
             {activeReport === 'departments' && departmentReport && (
                 <div className="space-y-6">
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                             <div className="flex items-center gap-3">
                                 <Building2 className="w-8 h-8 text-blue-600" />
@@ -388,42 +331,57 @@ const Reports = () => {
                             <div className="flex items-center gap-3">
                                 <Users className="w-8 h-8 text-green-600" />
                                 <div>
-                                    <p className="text-gray-500 text-sm">Total Employees Across All Departments</p>
+                                    <p className="text-gray-500 text-sm">Total Employees</p>
+                                    <p className="text-2xl font-bold">{departmentReport.total_employees}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <DollarSign className="w-8 h-8 text-purple-600" />
+                                <div>
+                                    <p className="text-gray-500 text-sm">Total Payroll</p>
                                     <p className="text-2xl font-bold">
-                                        {departmentReport.departments?.reduce((sum, d) => sum + d.employee_count, 0)}
+                                        {departmentReport.departments?.reduce((sum, d) => sum + d.total_salary, 0).toLocaleString()} RWF
                                     </p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Departments Table */}
+                    {/* Departments Summary Table */}
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                         <div className="p-4 border-b border-gray-200 bg-gray-50">
-                            <h3 className="text-lg font-semibold">Department Analysis</h3>
+                            <h3 className="text-lg font-semibold">Department Summary</h3>
                             <p className="text-sm text-gray-500">Generated: {new Date(departmentReport.generated_date).toLocaleString()}</p>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department Name</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employees</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Active</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Salary</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average Salary</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {departmentReport.departments?.map((dept) => (
+                                    {departmentReport.departments?.map((dept, index) => (
                                         <tr key={dept.id} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm">{dept.id}</td>
-                                            <td className="px-4 py-3 text-sm font-medium">{dept.name}</td>
-                                            <td className="px-4 py-3 text-sm">{dept.description || '-'}</td>
+                                            <td className="px-4 py-3 text-sm">{index + 1}</td>
+                                            <td className="px-4 py-3 text-sm font-semibold text-blue-600">{dept.name}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-500">{dept.description}</td>
                                             <td className="px-4 py-3 text-sm">
                                                 <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
                                                     {dept.employee_count} employees
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                                    {dept.active_employees} active
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-sm">{dept.total_salary.toLocaleString()} RWF</td>
@@ -435,49 +393,145 @@ const Reports = () => {
                         </div>
                     </div>
 
-                    {/* Department Employee Details */}
-                    {departmentReport.departments?.map((dept) => (
-                        dept.employee_count > 0 && (
-                            <div key={`details-${dept.id}`} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                                <div className="p-4 border-b border-gray-200 bg-gray-50">
-                                    <h4 className="text-md font-semibold flex items-center gap-2">
-                                        <Briefcase className="w-4 h-4 text-blue-600" />
-                                        {dept.name} Department - Employee List
-                                    </h4>
-                                </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
-                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Salary</th>
-                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {dept.employees?.map((emp) => (
-                                                <tr key={emp.id} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-2 text-sm font-mono">{emp.employee_code}</td>
-                                                    <td className="px-4 py-2 text-sm">{emp.first_name} {emp.last_name}</td>
-                                                    <td className="px-4 py-2 text-sm">{emp.position}</td>
-                                                    <td className="px-4 py-2 text-sm">{emp.salary?.toLocaleString()} RWF</td>
-                                                    <td className="px-4 py-2">
-                                                        <span className={`px-2 py-1 text-xs rounded-full ${
-                                                            emp.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                                        }`}>
-                                                            {emp.status}
-                                                        </span>
-                                                    </td>
+                    {/* Detailed Employee List by Department */}
+                    <div className="space-y-6">
+                        <h3 className="text-xl font-semibold text-gray-800">Employees by Department</h3>
+                        {departmentReport.departments?.map((dept) => (
+                            dept.employee_count > 0 && (
+                                <div key={`details-${dept.id}`} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                                    <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Building2 className="w-5 h-5 text-blue-600" />
+                                                <h4 className="text-md font-semibold text-gray-800">{dept.name} Department</h4>
+                                                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs ml-2">
+                                                    {dept.employee_count} Employees
+                                                </span>
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                                Total Salary: {dept.total_salary.toLocaleString()} RWF
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Full Name</th>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Salary</th>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {dept.employees?.map((emp) => (
+                                                    <tr key={emp.id} className="hover:bg-gray-50">
+                                                        <td className="px-4 py-2 text-sm font-mono">{emp.employee_code}</td>
+                                                        <td className="px-4 py-2 text-sm font-medium">{emp.first_name} {emp.last_name}</td>
+                                                        <td className="px-4 py-2 text-sm">{emp.position || '-'}</td>
+                                                        <td className="px-4 py-2 text-sm">{emp.email || '-'}</td>
+                                                        <td className="px-4 py-2 text-sm">{emp.phone || '-'}</td>
+                                                        <td className="px-4 py-2 text-sm">{emp.salary?.toLocaleString()} RWF</td>
+                                                        <td className="px-4 py-2">
+                                                            <span className={`px-2 py-1 text-xs rounded-full ${
+                                                                emp.status === 'active' ? 'bg-green-100 text-green-800' : 
+                                                                emp.status === 'inactive' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                                                            }`}>
+                                                                {emp.status}
+                                                            </span>
+                                                        </td>
+                                                    </td>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Employee Report */}
+            {activeReport === 'employees' && employeeReport && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <Users className="w-8 h-8 text-blue-600" />
+                                <div>
+                                    <p className="text-gray-500 text-sm">Total Employees</p>
+                                    <p className="text-2xl font-bold">{employeeReport.report?.total_employees || employees.length}</p>
                                 </div>
                             </div>
-                        )
-                    ))}
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <UserCheck className="w-8 h-8 text-green-600" />
+                                <div>
+                                    <p className="text-gray-500 text-sm">Active Employees</p>
+                                    <p className="text-2xl font-bold">
+                                        {employees.filter(e => e.status === 'active').length}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <DollarSign className="w-8 h-8 text-purple-600" />
+                                <div>
+                                    <p className="text-gray-500 text-sm">Total Monthly Salary</p>
+                                    <p className="text-2xl font-bold">
+                                        {employees.reduce((sum, e) => sum + (e.salary || 0), 0).toLocaleString()} RWF
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                        <div className="p-4 border-b border-gray-200 bg-gray-50">
+                            <h3 className="text-lg font-semibold">Employee Directory</h3>
+                            <p className="text-sm text-gray-500">Complete list of all employees</p>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Salary</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {employees.map((emp) => (
+                                        <tr key={emp.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 text-sm font-mono">{emp.employee_code}</td>
+                                            <td className="px-4 py-3 text-sm font-medium">{emp.first_name} {emp.last_name}</td>
+                                            <td className="px-4 py-3 text-sm">{emp.position}</td>
+                                            <td className="px-4 py-3 text-sm">{departments.find(d => d.id === emp.department_id)?.name || '-'}</td>
+                                            <td className="px-4 py-3 text-sm">{emp.email}</td>
+                                            <td className="px-4 py-3 text-sm">{emp.salary?.toLocaleString()} RWF</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                                    emp.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                    {emp.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             )}
 

@@ -28,9 +28,14 @@ const Attendance = () => {
                 getAttendance(),
                 getEmployees()
             ]);
+            
+            console.log('Attendance data:', attendanceRes.data);
+            console.log('Employees data:', employeesRes.data);
+            
             setAttendance(attendanceRes.data);
             setEmployees(employeesRes.data);
         } catch (error) {
+            console.error('Error fetching data:', error);
             toast.error('Error fetching data');
         } finally {
             setLoading(false);
@@ -50,6 +55,7 @@ const Attendance = () => {
             fetchData();
             closeModal();
         } catch (error) {
+            console.error('Error saving attendance:', error);
             toast.error(error.response?.data?.message || 'Operation failed');
         }
     };
@@ -61,6 +67,7 @@ const Attendance = () => {
                 toast.success('Attendance record deleted');
                 fetchData();
             } catch (error) {
+                console.error('Error deleting attendance:', error);
                 toast.error('Error deleting record');
             }
         }
@@ -71,7 +78,7 @@ const Attendance = () => {
             setEditingRecord(record);
             setFormData({
                 employee_id: record.employee_id,
-                date: record.date.split('T')[0],
+                date: record.date ? record.date.split('T')[0] : new Date().toISOString().split('T')[0],
                 check_in: record.check_in || '',
                 check_out: record.check_out || '',
                 status: record.status,
@@ -104,6 +111,12 @@ const Attendance = () => {
             half_day: 'bg-blue-100 text-blue-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
+    };
+
+    // Helper function to get employee name
+    const getEmployeeName = (employeeId) => {
+        const employee = employees.find(emp => emp.id === employeeId);
+        return employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown Employee';
     };
 
     if (loading) {
@@ -142,47 +155,63 @@ const Attendance = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {attendance.map((record) => (
-                                <tr key={record.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {new Date(record.date).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {record.first_name} {record.last_name}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{record.check_in || '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{record.check_out || '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(record.status)}`}>
-                                            {record.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{record.remarks || '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button onClick={() => openModal(record)} className="text-blue-600 hover:text-blue-800 mr-3">
-                                            <Edit className="w-5 h-5" />
-                                        </button>
-                                        <button onClick={() => handleDelete(record.id)} className="text-red-600 hover:text-red-800">
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
+                            {attendance.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                                        No attendance records found. Click "Record Attendance" to add one.
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                attendance.map((record) => (
+                                    <tr key={record.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {record.date ? new Date(record.date).toLocaleDateString() : '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {record.employee_name || getEmployeeName(record.employee_id)}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{record.check_in || '-'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{record.check_out || '-'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(record.status)}`}>
+                                                {record.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{record.remarks || '-'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <button 
+                                                onClick={() => openModal(record)} 
+                                                className="text-blue-600 hover:text-blue-800 mr-3 transition"
+                                                title="Edit"
+                                            >
+                                                <Edit className="w-5 h-5" />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(record.id)} 
+                                                className="text-red-600 hover:text-red-800 transition"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Modal Form */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg max-w-md w-full p-6">
                         <h2 className="text-xl font-bold mb-4">
-                            {editingRecord ? 'Edit Attendance' : 'Record Attendance'}
+                            {editingRecord ? 'Edit Attendance Record' : 'Record Attendance'}
                         </h2>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Employee*</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Employee *</label>
                                 <select
                                     required
                                     value={formData.employee_id}
@@ -191,12 +220,15 @@ const Attendance = () => {
                                 >
                                     <option value="">Select Employee</option>
                                     {employees.map(emp => (
-                                        <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+                                        <option key={emp.id} value={emp.id}>
+                                            {emp.first_name} {emp.last_name} ({emp.employee_code})
+                                        </option>
                                     ))}
                                 </select>
                             </div>
+                            
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date*</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
                                 <input
                                     type="date"
                                     required
@@ -205,6 +237,7 @@ const Attendance = () => {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
+                            
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Check In Time</label>
                                 <input
@@ -214,6 +247,7 @@ const Attendance = () => {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
+                            
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Check Out Time</label>
                                 <input
@@ -223,6 +257,7 @@ const Attendance = () => {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
+                            
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                 <select
@@ -236,6 +271,7 @@ const Attendance = () => {
                                     <option value="half_day">Half Day</option>
                                 </select>
                             </div>
+                            
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
                                 <textarea
@@ -243,13 +279,22 @@ const Attendance = () => {
                                     onChange={(e) => setFormData({...formData, remarks: e.target.value})}
                                     rows="2"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Optional remarks..."
                                 />
                             </div>
-                            <div className="flex justify-end gap-3">
-                                <button type="button" onClick={closeModal} className="px-4 py-2 border rounded-md hover:bg-gray-50">
+                            
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition"
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                                >
                                     {editingRecord ? 'Update' : 'Save'}
                                 </button>
                             </div>

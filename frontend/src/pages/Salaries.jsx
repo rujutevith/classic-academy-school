@@ -11,7 +11,7 @@ const Salaries = () => {
     const [editingSalary, setEditingSalary] = useState(null);
     const [formData, setFormData] = useState({
         employee_id: '',
-        month_year: new Date().toISOString().slice(0, 7), // Format: "2026-05"
+        month_year: new Date().toISOString().slice(0, 7),
         base_salary: '',
         bonuses: '0',
         deductions: '0',
@@ -30,6 +30,10 @@ const Salaries = () => {
                 getSalaries(),
                 getEmployees()
             ]);
+            
+            console.log('Salaries data:', salariesRes.data);
+            console.log('Employees data:', employeesRes.data);
+            
             setSalaries(salariesRes.data);
             setEmployees(employeesRes.data);
         } catch (error) {
@@ -52,7 +56,6 @@ const Salaries = () => {
         setFormData(prev => {
             const newData = { ...prev, [name]: value };
             
-            // Recalculate net salary when base_salary, bonuses, or deductions change
             if (name === 'base_salary' || name === 'bonuses' || name === 'deductions') {
                 newData.net_salary = calculateNetSalary(
                     name === 'base_salary' ? value : prev.base_salary,
@@ -68,7 +71,6 @@ const Salaries = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // Validate inputs
         if (!formData.employee_id) {
             toast.error('Please select an employee');
             return;
@@ -82,7 +84,7 @@ const Salaries = () => {
         try {
             const submitData = {
                 employee_id: parseInt(formData.employee_id),
-                month_year: formData.month_year + '-01', // Add day to make complete date
+                month_year: formData.month_year + '-01',
                 base_salary: parseFloat(formData.base_salary),
                 bonuses: parseFloat(formData.bonuses) || 0,
                 deductions: parseFloat(formData.deductions) || 0,
@@ -124,7 +126,6 @@ const Salaries = () => {
 
     const openModal = (salary = null) => {
         if (salary) {
-            // Extract year-month from full date
             const monthYear = salary.month_year ? salary.month_year.slice(0, 7) : '';
             
             setEditingSalary(salary);
@@ -166,6 +167,12 @@ const Salaries = () => {
             cancelled: 'bg-red-100 text-red-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
+    };
+
+    // Helper function to get employee name
+    const getEmployeeName = (employeeId) => {
+        const employee = employees.find(emp => emp.id === employeeId);
+        return employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown Employee';
     };
 
     if (loading) {
@@ -215,19 +222,19 @@ const Salaries = () => {
                                 salaries.map((salary) => (
                                     <tr key={salary.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {salary.first_name} {salary.last_name}
+                                            {salary.employee_name || getEmployeeName(salary.employee_id)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {new Date(salary.month_year).toLocaleDateString('default', { month: 'long', year: 'numeric' })}
+                                            {salary.month_year ? new Date(salary.month_year).toLocaleDateString('default', { month: 'long', year: 'numeric' }) : '-'}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {parseFloat(salary.base_salary).toLocaleString()} RWF
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {parseFloat(salary.bonuses).toLocaleString()} RWF
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                                            +{parseFloat(salary.bonuses).toLocaleString()} RWF
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {parseFloat(salary.deductions).toLocaleString()} RWF
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                                            -{parseFloat(salary.deductions).toLocaleString()} RWF
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">
                                             {parseFloat(salary.net_salary).toLocaleString()} RWF
@@ -238,10 +245,18 @@ const Salaries = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            <button onClick={() => openModal(salary)} className="text-blue-600 hover:text-blue-800 mr-3">
+                                            <button 
+                                                onClick={() => openModal(salary)} 
+                                                className="text-blue-600 hover:text-blue-800 mr-3 transition"
+                                                title="Edit"
+                                            >
                                                 <Edit className="w-5 h-5" />
                                             </button>
-                                            <button onClick={() => handleDelete(salary.id)} className="text-red-600 hover:text-red-800">
+                                            <button 
+                                                onClick={() => handleDelete(salary.id)} 
+                                                className="text-red-600 hover:text-red-800 transition"
+                                                title="Delete"
+                                            >
                                                 <Trash2 className="w-5 h-5" />
                                             </button>
                                         </td>
@@ -253,16 +268,16 @@ const Salaries = () => {
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Modal Form */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
                         <h2 className="text-xl font-bold mb-4">
                             {editingSalary ? 'Edit Salary Record' : 'Add Salary Record'}
                         </h2>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Employee*</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Employee *</label>
                                 <select
                                     required
                                     name="employee_id"
@@ -280,7 +295,7 @@ const Salaries = () => {
                             </div>
                             
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Month*</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Month *</label>
                                 <input
                                     type="month"
                                     required
@@ -292,7 +307,7 @@ const Salaries = () => {
                             </div>
                             
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Base Salary (RWF)*</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Base Salary (RWF) *</label>
                                 <input
                                     type="number"
                                     required
@@ -365,11 +380,18 @@ const Salaries = () => {
                                 </div>
                             )}
                             
-                            <div className="flex justify-end gap-3">
-                                <button type="button" onClick={closeModal} className="px-4 py-2 border rounded-md hover:bg-gray-50">
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition"
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                                >
                                     {editingSalary ? 'Update' : 'Create'}
                                 </button>
                             </div>

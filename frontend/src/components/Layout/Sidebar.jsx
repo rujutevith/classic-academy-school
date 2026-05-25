@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, Calendar, DollarSign, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, Calendar, DollarSign, LogOut, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
@@ -12,6 +12,7 @@ const Sidebar = () => {
         { path: '/departments', icon: Building2, label: 'Departments' },
         { path: '/attendance', icon: Calendar, label: 'Attendance' },
         { path: '/salaries', icon: DollarSign, label: 'Salaries' },
+        { path: '/reports', icon: FileText, label: 'Reports' },  // NEW
     ];
 
     return (

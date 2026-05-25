@@ -8,10 +8,11 @@ import Employees from './pages/Employees';
 import Departments from './pages/Departments';
 import Attendance from './pages/Attendance';
 import Salaries from './pages/Salaries';
+import Reports from './pages/Reports';
 import Sidebar from './components/Layout/Sidebar';
 import Navbar from './components/Layout/Navbar';
 
-// Private Route wrapper
+// Private Route wrapper component
 const PrivateRoute = ({ children }) => {
     const { user, loading } = useAuth();
     
@@ -47,6 +48,8 @@ function AppContent() {
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
+            
+            {/* Dashboard Route */}
             <Route
                 path="/dashboard"
                 element={
@@ -57,6 +60,8 @@ function AppContent() {
                     </PrivateRoute>
                 }
             />
+            
+            {/* Employees Route */}
             <Route
                 path="/employees"
                 element={
@@ -67,6 +72,8 @@ function AppContent() {
                     </PrivateRoute>
                 }
             />
+            
+            {/* Departments Route */}
             <Route
                 path="/departments"
                 element={
@@ -77,6 +84,8 @@ function AppContent() {
                     </PrivateRoute>
                 }
             />
+            
+            {/* Attendance Route */}
             <Route
                 path="/attendance"
                 element={
@@ -87,6 +96,8 @@ function AppContent() {
                     </PrivateRoute>
                 }
             />
+            
+            {/* Salaries Route */}
             <Route
                 path="/salaries"
                 element={
@@ -97,6 +108,21 @@ function AppContent() {
                     </PrivateRoute>
                 }
             />
+            
+            {/* Reports Route - NEW */}
+            <Route
+                path="/reports"
+                element={
+                    <PrivateRoute>
+                        <AppLayout>
+                            <Reports />
+                        </AppLayout>
+                    </PrivateRoute>
+                }
+            />
+            
+            {/* Catch all - redirect to dashboard */}
+            <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
     );
 }
@@ -107,7 +133,30 @@ function App() {
         <Router>
             <AuthProvider>
                 <AppContent />
-                <Toaster position="top-right" />
+                <Toaster 
+                    position="top-right"
+                    toastOptions={{
+                        duration: 4000,
+                        style: {
+                            background: '#363636',
+                            color: '#fff',
+                        },
+                        success: {
+                            duration: 3000,
+                            iconTheme: {
+                                primary: '#10B981',
+                                secondary: '#fff',
+                            },
+                        },
+                        error: {
+                            duration: 4000,
+                            iconTheme: {
+                                primary: '#EF4444',
+                                secondary: '#fff',
+                            },
+                        },
+                    }}
+                />
             </AuthProvider>
         </Router>
     );
